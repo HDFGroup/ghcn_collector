@@ -8,6 +8,7 @@ Read GHCN csv files from S3, parse, and append to HDF GHCN table.
 
 import time
 import logging
+import sys
 import boto3
 from botocore.exceptions import ClientError
 import numpy as np
@@ -156,19 +157,24 @@ def addYearData(f, year):
     row_marker = getRowMarker(f, year)
     rows_read = 0
 
-    s3 = boto3.resource('s3')
+    #s3 = boto3.ressource('s3')
+    s3 = boto3.client('s3', aws_access_key_id='', aws_secret_access_key='')
+    s3._request_signer.sign = (lambda *args, **kwargs: None)
     try:
-        obj = s3.Object(s3_bucket, s3_key)
+        # Do HEAD request to verify key exist and get size
+        rsp = s3.head_object(Bucket=s3_bucket, Key=s3_key)
+        content_length = rsp['ContentLength']
     except ClientError as ce:
         if ce.response['Error']['Code'] == 'NoSuchKey':
             logging.warn(f"key: {s3_key} not found")
             return 0
 
+    logging.debug(f"content length for {s3_key}: {content_length}")
+    
     while True:
-        logging.info(f"content_length for year: {year}: {obj.content_length}")
         range_end = range_start + block_size
-        if range_end > obj.content_length:
-            range_end = obj.content_length
+        if range_end > content_length:
+            range_end = content_length
         if range_end - range_start <= 0:
             logging.info("no more bytes to read")
             break
@@ -177,7 +183,7 @@ def addYearData(f, year):
         logging.debug(f"s3_range: {s3_range}")
         ghcn_text = None
         try:
-            rsp = obj.get(Range=s3_range)
+            rsp = s3.get_object(Bucket=s3_bucket, Key=s3_key, Range=s3_range)
             body = rsp['Body']
             ghcn_text = body.read()
         except ClientError as ce:
@@ -291,7 +297,21 @@ logging.basicConfig(level=level)
 sleep_time = config.get("polling_interval")
 logging.debug("sleep_time:", sleep_time)
 
-filename = config.get("filename")
+filename = None
+for i in range(1, len(sys.argv)):
+    arg = sys.argv[1]
+    if arg[0] != '-':
+        # not an override option
+        filename = arg
+
+if not filename:
+    filename = config.get("filename")
+
+if not filename:
+    logging.error("no filename provided!")
+    sys.exit(1)
+
+logging.info(f"Using filename: {filename}")
 
 # Process yearly data files until we get two consective years with no update.
 while True:
