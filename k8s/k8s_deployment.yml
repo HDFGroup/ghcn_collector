@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: ghcn
+  name: ghcn
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ghcn
+  template:
+    metadata:
+      labels:
+        app: ghcn
+    spec:
+      containers:
+        -
+          name: ghcn-update
+          image: "530483214727.dkr.ecr.us-west-2.amazonaws.com/ghcn-update:v05"
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              memory: "1G"
+            limits:
+              memory: "1G"
+          volumeMounts:
+          - name: config
+            mountPath: "/config/"
+          env:
+          - name: HSDS_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: ghcn-user
+                key: hsds_username
+          - name: HSDS_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: ghcn-user
+                key: hsds_password
+      volumes:
+      - name: config
+        configMap:
+          name: ghcn-conf

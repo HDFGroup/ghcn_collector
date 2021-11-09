@@ -5,7 +5,6 @@ import yaml
 
 cfg = {}
 
-
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
@@ -58,7 +57,7 @@ def _load_cfg():
         config_dirs.append(os.environ["CONFIG_DIR"])
         debug(f"got environment override for config-dir: {config_dirs[0]}")
     if not config_dirs:
-        config_dirs = [".", "/config"]  # default locations
+        config_dirs = ["/config", "."]  # default locations
     for config_dir in config_dirs:
         file_name = os.path.join(config_dir, "config.yml")
         debug("checking config path:", file_name)
@@ -66,9 +65,9 @@ def _load_cfg():
             yml_file = file_name
             break
     if not yml_file:
-        # use yaml file embedded in package
-        package_dir = os.path.dirname(__file__)
-        yml_file = os.path.join(package_dir, "../config/config.yml")
+        msg = f"config.yml not found in config_dir: {config_dirs}"
+        eprint(msg)
+        raise FileNotFoundError(msg)
     debug(f"_load_cfg with '{yml_file}'")
     try:
         with open(yml_file, "r") as f:
@@ -78,21 +77,6 @@ def _load_cfg():
         eprint(msg)
         raise KeyError(msg)
 
-    # load override yaml
-    yml_override = None
-    if "CONFIG_OVERRIDE_PATH" in os.environ:
-        override_yml_filepath = os.environ["CONFIG_OVERRIDE_PATH"]
-    else:
-        override_yml_filepath = "/config/override.yml"
-    if os.path.isfile(override_yml_filepath):
-        debug(f"loading override configuation: {override_yml_filepath}")
-        try:
-            with open(override_yml_filepath, "r") as f:
-                yml_override = yaml.safe_load(f)
-        except yaml.scanner.ScannerError as se:
-            msg = f"Error parsing '{override_yml_filepath}': {se}"
-            eprint(msg)
-            raise KeyError(msg)
 
     # apply overrides for each key and store in cfg global
     for x in yml_config:
@@ -104,11 +88,6 @@ def _load_cfg():
         if override is None and x.upper() in os.environ:
             override = os.environ[x.upper()]
             debug(f"got env value override for {x} ")
-
-        # see if there is a yml override
-        if override is None and yml_override and x in yml_override:
-            override = yml_override[x]
-            debug(f"got config override for {x}")
 
         if override is not None:
             if cfgval is not None:
