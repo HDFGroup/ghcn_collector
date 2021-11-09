@@ -9,4 +9,4 @@ hsds_username: null  # HSDS username - if HSDS is used
 hsds_password: null  # HSDS password - if HSDS is used
 filename: null  # change to filepath to be used.  Use hdf5:// prefix for HSDS
 log_level: INFO # DEBUG, INFO, WARNING, or ERROR
-block_size: 256000  # number of bytes to read from S3 per request
+block_size: 1048576  # number of bytes to read from S3 per request

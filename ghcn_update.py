@@ -155,6 +155,8 @@ def addYearData(f, year):
 
     # get the last row processed for the given year
     row_marker = getRowMarker(f, year)
+    logging.info(f"got row_marker: {year}/{row_marker}")
+
     rows_read = 0
 
     #s3 = boto3.ressource('s3')
@@ -180,7 +182,7 @@ def addYearData(f, year):
             break
 
         s3_range = f"bytes={range_start}-{range_end}"
-        logging.debug(f"s3_range: {s3_range}")
+        logging.info(f"s3_range: {s3_range}")
         ghcn_text = None
         try:
             rsp = s3.get_object(Bucket=s3_bucket, Key=s3_key, Range=s3_range)
@@ -198,7 +200,7 @@ def addYearData(f, year):
             break
         ghcn_text = ghcn_text.decode('ascii')        
         num_bytes = len(ghcn_text)
-        logging.debug(f"read {num_bytes} bytes")
+        logging.info(f"read {num_bytes} bytes")
         rows = ghcn_text.split('\n')
         last_row = rows[-1]
         fields = last_row.split(',')
@@ -223,7 +225,6 @@ def addYearData(f, year):
         # rows = rows[1:]
         # index = len(rows) + row_maker - rows_read
         # rows = rows[index:]
-        logging.info(f"got row_marker: {row_marker}")
         if rows_read > row_marker:
             if rows_read - len(rows) < row_marker:
                 # remove rows we've already processed
@@ -235,6 +236,7 @@ def addYearData(f, year):
             return_rows += len(rows)    
 
             setRowMarker(f, year, rows_read)    
+            row_marker = rows_read
     
     logging.info(f"addYearData {year} - return_rows: {return_rows}")
 
@@ -325,6 +327,7 @@ while True:
                 logging.info("no rows found")
     except Exception as e:
         logging.error(f"Unexpected exception {e}")
+        raise
     if config.get("run_forever"):
         logging.info(f"sleeping for {sleep_time} minutes")
         time.sleep(sleep_time*60)

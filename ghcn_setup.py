@@ -45,7 +45,7 @@ def create_table(grp, name, dt):
         return  # Dataset already exists
     logging.info(f"Creating dataset: {name}")
 
-    grp.create_dataset(name, (0,), maxshape=(None,), dtype=dt)
+    grp.create_dataset(name, (0,), maxshape=(None,), chunks=(91268,), dtype=dt)
 #  
 # Main
 #
