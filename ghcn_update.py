@@ -162,6 +162,7 @@ def addYearData(f, year):
     #s3 = boto3.ressource('s3')
     s3 = boto3.client('s3', aws_access_key_id='', aws_secret_access_key='')
     s3._request_signer.sign = (lambda *args, **kwargs: None)
+    content_length = 0
     try:
         # Do HEAD request to verify key exist and get size
         rsp = s3.head_object(Bucket=s3_bucket, Key=s3_key)
@@ -172,6 +173,9 @@ def addYearData(f, year):
             return 0
 
     logging.debug(f"content length for {s3_key}: {content_length}")
+    if content_length == 0:
+        logging.warn(f"no content for  {s3_key}, returning")
+        return 0
     
     while True:
         range_end = range_start + block_size
