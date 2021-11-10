@@ -51,7 +51,7 @@ def addRows(f, rows):
     """ Add rows to table """
     count = len(rows)
     if count == 0:
-        logging.warn("addRows - no rows to add!")
+        logging.warning("addRows - no rows to add!")
         return
     
     arr = np.zeros((count,), dtype=dt_day)
@@ -88,22 +88,22 @@ def addRows(f, rows):
         e['data_value'] = data_value
         m_flag = fields[4]
         if len(m_flag) > 1:
-            logging.warn(f"Unexpected length of m_flag: {m_flag}")
+            logging.warning(f"Unexpected length of m_flag: {m_flag}")
             m_flag = m_flag[0]
         e['m_flag'] = m_flag
         q_flag = fields[5]
         if len(q_flag) > 1:
-            logging.warn(f"Unexpected length of q_flag: {q_flag}")
+            logging.warning(f"Unexpected length of q_flag: {q_flag}")
             q_flag = q_flag[0]
         e['q_flag'] = q_flag
         s_flag = fields[6]
         if len(s_flag) > 1:
-            logging.warn(f"Unexpected length of s_flag: {s_flag}")
+            logging.warning(f"Unexpected length of s_flag: {s_flag}")
             s_flag = s_flag[0]
         e['s_flag'] = s_flag
         obs_time = fields[7]
         if len(obs_time) > 4:
-            logging.warn(f"Unexpected length of obs_time: {obs_time}")
+            logging.warning(f"Unexpected length of obs_time: {obs_time}")
             obs_time = obs_time[:4]
         e['obs_time'] = obs_time
         arr[i] = e
@@ -169,12 +169,12 @@ def addYearData(f, year):
         content_length = rsp['ContentLength']
     except ClientError as ce:
         if ce.response['Error']['Code'] == 'NoSuchKey':
-            logging.warn(f"key: {s3_key} not found")
+            logging.warning(f"key: {s3_key} not found")
             return 0
 
     logging.debug(f"content length for {s3_key}: {content_length}")
     if content_length == 0:
-        logging.warn(f"no content for  {s3_key}, returning")
+        logging.warning(f"no content for  {s3_key}, returning")
         return 0
     
     while True:
