@@ -1,5 +1,11 @@
+import sys
 import h5pyd
-f = h5pyd.File("/shared/ghcn/ghcn.h5k", use_cache=False)
+ 
+if len(sys.argv) < 2 or sys.argv[1] in ('-h', '--help'):
+    print("usage: python get_station_ids <ghcn_file>")
+    sys.exit(0)
+filename = sys.argv[1]
+f = h5pyd.File(filename, mode='r', use_cache=False)
 dset = f['data']
 station_year_map = {}
 cursor = dset.create_cursor()
