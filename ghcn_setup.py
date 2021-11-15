@@ -13,8 +13,11 @@ import h5py
 
 if __name__ == "__main__":
     from ghcn_dtype import dt_day
+    from ghcn_dtype import dt_station
+
 else:
     from .ghcn_dtype import dt_day
+    from .ghcn_dtype import dt_station
 
 def usage():
     """ Usage message """
@@ -100,6 +103,9 @@ with h5File(hdf_filepath, mode='a') as f:
     logging.debug(f"Got root id: {f.id.id}")
     # Create data table if not created already
     create_table(f, "data", dt_day)
+
+    # Create station table
+    create_table(f, "stations", dt_station)
 
     # TBD - create/update auxillary tables 
     logging.info("done")

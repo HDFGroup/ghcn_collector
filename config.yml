@@ -3,6 +3,7 @@ last_year: 1901   # Last year to use
 run_forever: true # if true, ghcn_update will sleep polling_interval minutes, then check for new data
 ghcn_bucket: noaa-ghcn-pds # bucket where GHCN CSV files are stored
 ghcn_path: csv/  # folder path the GHCN CSV files
+stations_key: ghcnd-stations.txt
 polling_interval: 1440  # 24 hours
 hsds_endpoint: null  # HSDS endpoint - if HSDS is used
 hsds_username: null  # HSDS username - if HSDS is used

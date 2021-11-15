@@ -8,7 +8,7 @@ if len(sys.argv) < 2 or sys.argv[1] in ('-h', '--help'):
     sys.exit(0)
 filename = sys.argv[1]
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.ERROR)
 start_time = time.time()
 logging.info(f"start_time: {start_time:.2f}")
 

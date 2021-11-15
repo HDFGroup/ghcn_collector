@@ -21,9 +21,11 @@ MAX_SHORT = 32767
 
 if __name__ == "__main__":
     from ghcn_dtype import dt_day
+    from ghcn_dtype import dt_station
 else:
     from .ghcn_dtype import dt_day
- 
+    from ghcn_dtype import dt_station
+
 
 def h5File(path, mode='r'):
     """ open a HSDS domain or HDF5 file based on the path.
@@ -139,6 +141,23 @@ def setRowMarker(f, year, row):
     if "_row_marker" in dset.attrs:
         del dset.attrs["_row_marker"]
     dset.attrs["_row_marker"] = [year, row]
+
+def getStationEtag(f):
+    """ Get the etag for the station CSV file when
+    it was last download.  Or return empty string if 
+    etag was never saved.  """
+    dset = f['stations']
+    etag = ""
+    if "_etag" in dset.attrs:
+        etag = dset.attrs["_etag"]
+    return etag
+     
+def setStationEtag(f, etag):
+    """ Set the etag for stations CSV file """
+    dset = f['stations']
+    if "_etag" in dset.attrs:
+        del dset.attrs["_etag"]
+    dset.attrs["_etag"] = etag
 
 
 def addYearData(f, year):
@@ -276,6 +295,135 @@ def getData(f):
         year += 1
 
     return total_added
+
+def getStations(f):
+    """ update stations table with latest GHCN content """
+    s3_bucket = config.get("ghcn_bucket")
+    s3_key = config.get("stations_key")
+    dset = f['stations']
+    # create a map of existing station data
+    # expecint a few 100K stations, so can read into memory
+
+    # get s3 file etag
+    s3 = boto3.client('s3', aws_access_key_id='', aws_secret_access_key='')
+    s3._request_signer.sign = (lambda *args, **kwargs: None)
+    etag = ""
+    try:
+        # Do HEAD request to verify key exist and get size
+        rsp = s3.head_object(Bucket=s3_bucket, Key=s3_key)
+        etag = rsp['ETag']
+    except ClientError as ce:
+        if ce.response['Error']['Code'] == 'NoSuchKey':
+            logging.warning(f"key: {s3_key} not found")
+            return 0
+
+    logging.debug(f"etag for {s3_key}: {etag}")
+
+    # if etag is same, just skip
+    if getStationEtag(f) == etag:
+        logging.info("no change to stations file")
+        return 0
+
+    stations_text = None
+    try:
+        rsp = s3.get_object(Bucket=s3_bucket, Key=s3_key)
+        body = rsp['Body']
+        stations_text = body.read()
+    except ClientError as ce:
+        error_code = ce.response['Error']['Code']
+        logging.error(f"ClientError for getting stations: {error_code}")
+        
+    if not stations_text:
+        logging.warning("no bytes read for stations.csv")
+        return 0
+
+    stations_text = stations_text.decode('utf-8')        
+
+    rows = stations_text.split('\n')
+    count = len(rows)
+    if count == 0:
+        logging.warning("getStations - no rows to add!")
+        return 0
+
+    
+    arr = np.zeros((count,), dtype=dt_station)
+    for i in range(count):
+        row = rows[i]
+        # ACW 000 116 04  17.1167  -61.7833   10.1    ST JOHNS COOLIDGE FLD
+        e = arr[i]
+         
+        station_id = row[:11].strip()
+        if len(station_id) == 0:
+            logging.warning("station_id not set, ignoring")
+            continue
+
+        if len(station_id) != 11:
+            logging.warning(f"unexpected station_id: {station_id}")
+            continue
+        e['station_id'] = station_id
+        lat = row[11:20]
+        try:
+            lat = float(lat)
+        except ValueError:
+            logging.warning(f"Unable to convert lat: {lat} to float")
+            continue
+        e['lat'] = lat
+        lon = row[21:30]
+        try:
+            lon = float(lon)
+        except ValueError:
+            logging.warning(f"Unable to convert lon: {lon} to float")
+            print("row:", row)
+            continue
+        e['lon'] = lon
+        elev = row[31:37]
+        try:
+            elev = float(elev)
+        except ValueError:
+            logging.warning(f"Unable to convert lat: {lat} to float")
+            continue
+        e['elev'] = elev
+        state = row[38:40].strip()
+        e['state'] = state
+        name = row[41:71].strip()
+        try:
+            e['name'] = name
+        except UnicodeEncodeError:
+            logging.warning(f"can't encode name {name} to ascii")
+            name = name.encode('utf-8')
+            if len(name) > 30:
+                name = name[30:]
+                logging.warning("truncating name to 30 characters")
+            e['name'] = name
+        gsn_flag = row[72:75].strip()
+        try:
+            e['gsn_flag'] = gsn_flag
+        except UnicodeEncodeError:
+            logging.warning("can't encode gsn flag to ascii")
+            continue
+
+        hcn_flag = row[76:79].strip()
+        try:
+            e['hcn_flag'] = hcn_flag
+        except UnicodeEncodeError:
+            logging.warning("Can't encode hcn flag to ascii")
+            continue
+
+        wmo_id = row[80:85].strip()
+        try:
+            e['wmo_id'] = wmo_id
+        except UnicodeEncodeError:
+            logging.warning("Can't enode wmo_id to ascii")
+            continue
+        arr[i] = e
+    # can the number of stations ever go down?
+    if dset.shape[0] < count:
+        logging.info(f"resizing stations table to {count} rows")
+        dset.resize((count,))
+    dset[:count] = arr
+    setStationEtag(f, etag)  # set etag so don't need to reprocess unless changed
+    return count
+
  
 #
 # Main:
@@ -324,6 +472,9 @@ while True:
     nrows = 0
     try:
         with h5File(filename, mode='a') as f:
+            nstations = getStations(f)
+            if nstations > 0:
+                logging.info(f"updated stations table")
             nrows = getData(f)
             if nrows > 0:
                 logging.info(f"added {nrows} rows") 

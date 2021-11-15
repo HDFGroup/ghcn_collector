@@ -48,4 +48,25 @@ dt_day = np.dtype([('station_id', dt_station_id),
                       ('obs_time', dt_obs_time)
                       ])
 
+dt_lat = np.dtype('f4')
+dt_lon = np.dtype('f4')
+dt_elev = np.dtype('f4')
+dt_state = np.dtype('S2')
+dt_name = np.dtype('S30')
+dt_gsn_flag = np.dtype('S3')
+dt_hcn_flag = np.dtype('S3')
+dt_wmo_id = np.dtype('S5')
+
+# datatype for station data
+dt_station = np.dtype([('station_id', dt_station_id),
+                       ('lat', dt_lat),
+                       ('lon', dt_lon),
+                       ('elev', dt_elev),
+                       ('state', dt_state),
+                       ('name', dt_name),
+                       ('gsn_flag', dt_gsn_flag),
+                       ('hcn_flag', dt_hcn_flag),
+                       ('wmo_id', dt_wmo_id)
+                       ])
+
 
