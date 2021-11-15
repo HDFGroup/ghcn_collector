@@ -48,6 +48,8 @@ def getCmdLineArg(x):
 def _load_cfg():
     # load config yaml
     yml_file = None
+    yml_override = None
+    override_yml_filepath = None
     config_dirs = []
     # check if there is a command line option for config directory
     config_dir = getCmdLineArg("config-dir")
@@ -63,7 +65,10 @@ def _load_cfg():
         debug("checking config path:", file_name)
         if os.path.isfile(file_name):
             yml_file = file_name
-            break
+        override_name = os.path.join(config_dir, "override.yml")
+        debug("checking config path:", override_name)
+        if os.path.isfile(override_name):
+            override_yml_filepath = override_name
     if not yml_file:
         msg = f"config.yml not found in config_dir: {config_dirs}"
         eprint(msg)
@@ -78,12 +83,7 @@ def _load_cfg():
         raise KeyError(msg)
 
     # load override yaml
-    yml_override = None
-    if "CONFIG_OVERRIDE_PATH" in os.environ:
-        override_yml_filepath = os.environ["CONFIG_OVERRIDE_PATH"]
-    else:
-        override_yml_filepath = "/config/override.yml"
-    if os.path.isfile(override_yml_filepath):
+    if override_yml_filepath:
         debug(f"loading override configuation: {override_yml_filepath}")
         try:
             with open(override_yml_filepath, "r") as f:
@@ -92,7 +92,6 @@ def _load_cfg():
             msg = f"Error parsing '{override_yml_filepath}': {se}"
             eprint(msg)
             raise KeyError(msg)
-
 
     # apply overrides for each key and store in cfg global
     for x in yml_config:
