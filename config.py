@@ -77,6 +77,22 @@ def _load_cfg():
         eprint(msg)
         raise KeyError(msg)
 
+    # load override yaml
+    yml_override = None
+    if "CONFIG_OVERRIDE_PATH" in os.environ:
+        override_yml_filepath = os.environ["CONFIG_OVERRIDE_PATH"]
+    else:
+        override_yml_filepath = "/config/override.yml"
+    if os.path.isfile(override_yml_filepath):
+        debug(f"loading override configuation: {override_yml_filepath}")
+        try:
+            with open(override_yml_filepath, "r") as f:
+                yml_override = yaml.safe_load(f)
+        except yaml.scanner.ScannerError as se:
+            msg = f"Error parsing '{override_yml_filepath}': {se}"
+            eprint(msg)
+            raise KeyError(msg)
+
 
     # apply overrides for each key and store in cfg global
     for x in yml_config:
@@ -88,6 +104,11 @@ def _load_cfg():
         if override is None and x.upper() in os.environ:
             override = os.environ[x.upper()]
             debug(f"got env value override for {x} ")
+
+        # see if there is a yml override
+        if override is None and yml_override and x in yml_override:
+            override = yml_override[x]
+            debug(f"got config override for {x}")
 
         if override is not None:
             if cfgval is not None:
