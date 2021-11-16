@@ -9,7 +9,9 @@ RUN apt update \
  && pip install h5py \
  && pip install boto3
 
-COPY . /ghcn_collector
+COPY config.py /ghcn_collector
+COPY ghcn_dtype.py /ghcn_collector
+COPY ghcn_update.py /ghcn_collector
 
 WORKDIR /ghcn_collector
 
