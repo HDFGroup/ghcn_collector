@@ -1,5 +1,5 @@
 start_year: 1763  # First year to use
-last_year: 1901   # Last year to use
+last_year: 2063   # Last year to use
 run_forever: true # if true, ghcn_update will sleep polling_interval minutes, then check for new data
 ghcn_bucket: noaa-ghcn-pds # bucket where GHCN CSV files are stored
 ghcn_path: csv/  # folder path the GHCN CSV files
