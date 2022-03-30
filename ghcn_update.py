@@ -449,7 +449,7 @@ else:
 logging.basicConfig(level=level)
 
 sleep_time = config.get("polling_interval")
-logging.debug("sleep_time:", sleep_time)
+logging.debug(f"sleep_time: {sleep_time}")
 
 filename = None
 for i in range(1, len(sys.argv)):
